@@ -32,7 +32,7 @@
 #define NL_GAMMA 1.33                  // 0.3 low ~ 2.0 high
 #define NL_EXPOSURE 1.15             // [toggle] 0.5 dark ~ 3.0 bright
 #define NL_SATURATION 1.15            // [toggle] 0.0 grayscale ~ 4.0 super saturated
-#define NL_TINT                      // [toggle] enable light/dark tone tinting
+//#define NL_TINT                      // [toggle] enable light/dark tone tinting
 #define NL_TINT_LOW  vec3(0.5,0.5,0.5) // color tint for dark tone
 #define NL_TINT_HIGH vec3(1.4,0.7,0.3) // color tint for light tone
 
