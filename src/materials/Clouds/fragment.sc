@@ -35,6 +35,19 @@ void main() {
       #endif
 
       color.a *= v_color0.a;
+
+    #elif NL_CLOUD_TYPE == 4
+      vec2 uv = vDir.xz/(abs(vDir.y) + 0.04);
+
+      color = renderCloudsPseudo3D(uv, CameraPosition.xz, v_color2.w, v_color1.w, v_color2.rgb, v_color1.rgb);
+
+      #ifdef NL_AURORA
+        vec2 ground = uv*NL_CLOUD4_HEIGHT + CameraPosition.xz;
+        color += renderAurora(ground.xyy, v_color2.w, v_color1.w, v_dayFactor)*(1.0-0.95*color.a);
+      #endif
+
+      color.a *= smoothstep(0.0, 0.35, vDir.y);
+
     #else
       vDir.xz *= 0.3 + v_color0.w; // height parallax
 
