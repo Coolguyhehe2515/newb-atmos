@@ -142,6 +142,62 @@ vec4 renderClouds(vec2 p, float t, float rain, vec3 horizonCol, vec3 zenithCol, 
   return col;
 }
 
+float cloudHash4(highp vec2 p) {
+  highp vec3 q = fract(vec3(p.xyx)*0.1031);
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.x + q.y)*q.z);
+}
+
+float cloudValue4(highp vec2 p) {
+  highp vec2 i = floor(p);
+  vec2 f = p - i;
+  f *= f*(3.0 - 2.0*f);
+  return mix(
+    mix(cloudHash4(i), cloudHash4(i + vec2(1.0, 0.0)), f.x),
+    mix(cloudHash4(i + vec2(0.0, 1.0)), cloudHash4(i + vec2(1.0, 1.0)), f.x),
+    f.y
+  );
+}
+
+float cloudLow4(highp vec2 p) {
+  return 0.65*cloudValue4(p) + 0.35*cloudValue4(p*2.03 + 17.1);
+}
+
+vec4 renderCloudsPseudo3D(vec2 uv, highp vec2 camXZ, highp float t, float rain, vec3 horizonCol, vec3 zenithCol) {
+  float lod = clamp(1.4 - 0.18*length(uv), 0.0, 1.0);
+  float span = NL_CLOUD4_HEIGHT*NL_CLOUD4_SCALE;
+
+  highp vec2 p = uv*span + camXZ*NL_CLOUD4_SCALE + vec2(1.0, 0.45)*(t*NL_CLOUD4_SPEED);
+  highp vec2 p1 = p - uv*(span*NL_CLOUD4_DEPTH);
+  highp vec2 pl = p + vec2(0.6, 0.8)*NL_CLOUD4_LIGHT_OFFSET;
+
+  float a = cloudValue4(p);
+  float b = cloudValue4(p*2.03 + 17.1);
+  float c = cloudValue4(p*4.11 + 41.7);
+
+  float low = 0.65*a + 0.35*b;
+  float d0 = (0.55*a + 0.3*b + 0.15*lod*c)/(0.85 + 0.15*lod);
+  float d1 = cloudLow4(p1);
+  float dl = cloudLow4(pl);
+
+  float dens = max(d0, 0.9*d1);
+  float th = 0.58 - 0.4*(NL_CLOUD4_COVERAGE - 0.5) - 0.1*rain;
+
+  float alpha = smoothstep(th, th + NL_CLOUD4_SOFTNESS, dens);
+  float core = smoothstep(th, th + 0.3, dens);
+  float shadow = clamp(NL_CLOUD4_SHADE*(1.6*(dl - low) + 0.6*core + 0.1), 0.0, 1.0);
+
+  vec3 lit = horizonCol + horizonCol.ggg;
+  vec3 dark = 0.5*(zenithCol + zenithCol.ggg);
+  vec3 col = mix(lit, dark, shadow);
+
+  float edge = 4.0*alpha*(1.0 - alpha);
+  col += 0.2*lit*edge*(1.0 - shadow);
+  col *= 1.0 - 0.7*rain;
+
+  return vec4(col, alpha);
+}
+
 // aurora is rendered on clouds layer
 #ifdef NL_AURORA
 vec4 renderAurora(vec3 p, float t, float rain, float dayFactor) {
